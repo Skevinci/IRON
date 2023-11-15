@@ -1,15 +1,20 @@
-import random
-import cv2
-import json
-import os
-from detectron2.data import MetadataCatalog, DatasetCatalog
-from detectron2.utils.visualizer import Visualizer
-from detectron2.config import get_cfg
-from detectron2.engine import DefaultPredictor
-from detectron2 import model_zoo
-import numpy as np
 import detectron2
+import numpy as np
+from detectron2 import model_zoo
 from detectron2.utils.logger import setup_logger
+from detectron2.engine import DefaultPredictor
+from detectron2.config import get_cfg
+from detectron2.utils.visualizer import Visualizer
+from detectron2.data import MetadataCatalog, DatasetCatalog
+import torch
+import sys
+import os
+import json
+import cv2
+import random
+from PIL import Image
+sys.path.append(os.path.join(os.path.dirname(__file__), "./", "OFA"))
+from utils.eval_utils import eval_step
 setup_logger()
 
 
@@ -18,6 +23,7 @@ class IRON():
         self.img_path = "/home/skevinci/research/iron/img/test.png"
 
     def mask_rcnn(self):
+        """Mask R-CNN"""
         im = cv2.imread(self.img_path)
 
         cfg = get_cfg()
