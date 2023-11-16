@@ -25,4 +25,4 @@ Follow https://github.com/openai/CLIP and use *model.encode_image* to get the im
 
 Successfully implement Mask R-CNN, OFA and CLIP and get each object's mask, caption and feature vector. 
 
-Next step: Pass masks and captions to the diffusion model and generate the picture we want.
+Next step: Pass masks and captions to the diffusion model and generate the picture we want. Save generated images as png file.

@@ -19,16 +19,20 @@ from torchvision import transforms
 sys.path.append(os.path.join(os.path.dirname(__file__), "./", "OFA"))
 from transformers.models.ofa.generate import sequence_generator
 from transformers import OFATokenizer, OFAModel
+from openai import OpenAI
 setup_logger()
 
 
 class IRON():
     def __init__(self):
         self.img_path = "/home/skevinci/research/iron/img/test.png"
-        self.output_path = "/home/skevinci/research/iron/img/output/"
+        self.crop_img_path = "/home/skevinci/research/iron/img/crop/"
+        self.gen_img_path = "/home/skevinci/research/iron/img/generated/"
         self.ofa_ckpt_path = "/home/skevinci/research/iron/OFA-large-caption/"
+        self.client = OpenAI()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using {} device".format(self.device))
+        
         
         self.bbox = None
         self.mask = None
@@ -37,9 +41,9 @@ class IRON():
         self.img_feature = []
         
     def initDir(self):
-        if os.path.exists(self.output_path):
-            shutil.rmtree(self.output_path)
-        os.mkdir(self.output_path)
+        if os.path.exists(self.crop_img_path):
+            shutil.rmtree(self.crop_img_path)
+        os.mkdir(self.crop_img_path)
 
     def mask_rcnn(self):
         """Mask R-CNN"""
@@ -68,7 +72,7 @@ class IRON():
     def crop(self):
         """Crop image using bbox"""
         for i in range(len(self.bbox)):
-            self.original_img.crop(self.bbox[i]).save(self.output_path + str(i) + ".png")
+            self.original_img.crop(self.bbox[i]).save(self.crop_img_path + str(i) + ".png")
 
     def ofa(self):
         """OFA"""
@@ -98,7 +102,7 @@ class IRON():
             )
         
         for i in range(len(self.bbox)):
-            img = Image.open(self.output_path + str(i) + ".png")
+            img = Image.open(self.crop_img_path + str(i) + ".png")
             patch_img = patch_resize_transform(img).unsqueeze(0)
 
             data = {}
@@ -119,13 +123,25 @@ class IRON():
         model, preprocess = clip.load("ViT-B/32", device=self.device)
         
         for i in range(len(self.bbox)):
-            img = Image.open(self.output_path + str(i) + ".png")
+            img = Image.open(self.crop_img_path + str(i) + ".png")
             img = preprocess(img).unsqueeze(0).to(self.device)
             
             with torch.no_grad():
                 self.img_feature.append(model.encode_image(img).cpu().numpy())
         # print(self.img_feature[0].shape)
-
+    
+    def dalle(self):
+        response = self.client.images.generate(
+            model="dall-e-2",
+            prompt="a white siamese cat",
+            size="256x256",
+            quality="standard",
+            n=1,
+            response_format="b64_json",
+        )
+        
+        image_url = response.data[0].url
+        print(image_url)
         
     def execute(self):
         self.initDir()
@@ -144,4 +160,5 @@ class IRON():
 if __name__ == '__main__':
     pipeline = IRON()
     # pipeline.mask_rcnn()
-    pipeline.execute()
+    pipeline.dalle()
+    # pipeline.execute()
