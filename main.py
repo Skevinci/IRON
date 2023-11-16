@@ -12,6 +12,7 @@ import os
 import json
 import cv2
 import random
+import shutil
 from PIL import Image
 from torchvision import transforms
 sys.path.append(os.path.join(os.path.dirname(__file__), "./", "OFA"))
@@ -23,11 +24,16 @@ setup_logger()
 class IRON():
     def __init__(self):
         self.img_path = "/home/skevinci/research/iron/img/test.png"
-        self.output_path = "/home/skevinci/research/iron/img/output"
+        self.output_path = "/home/skevinci/research/iron/img/output/"
         self.ofa_ckpt_path = "/home/skevinci/research/iron/OFA-large-caption/"
         
         self.bbox = None
         self.original_img = Image.open(self.img_path)
+        
+    def initDir(self):
+        if os.path.exists(self.output_path):
+            shutil.rmtree(self.output_path)
+        os.mkdir(self.output_path)
 
     def mask_rcnn(self):
         """Mask R-CNN"""
@@ -98,6 +104,8 @@ class IRON():
         print("==========OFA Finished==========")
         
     def execute(self):
+        self.initDir()
+        
         # get bbox using mask rcnn
         self.mask_rcnn()
         
