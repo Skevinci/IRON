@@ -9,11 +9,13 @@ Current packages change due to the installation of fairseq:
 
 **OFA**
 
-Changes from official installment:
+~~Changes from official installment:~~
 
-1. Delete directory fairseq, and using "pip install fairseq==0.12.2" instead.
+~~1. Delete directory fairseq, and using "pip install fairseq==0.12.2" instead.
 2. Comment "pycocotools==2.0.4" in the requirements.txt since it conflicts with that of in Detectron2.
-3. Downgrade protobuf using "pip install protobuf==3.20"
+3. Downgrade protobuf using "pip install protobuf==3.20"~~
+
+Follow https://huggingface.co/OFA-Sys/ofa-large-caption.
 
 **Current Work Flow**
 
