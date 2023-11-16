@@ -17,8 +17,12 @@ Current packages change due to the installation of fairseq:
 
 Follow https://huggingface.co/OFA-Sys/ofa-large-caption.
 
+**CLIP**
+
+Follow https://github.com/openai/CLIP and use *model.encode_image* to get the image feature vector.
+
 **Current Work Flow**
 
-Successfully import OFA and run mask-RCNN. 
+Successfully implement Mask R-CNN, OFA and CLIP and get each object's mask, caption and feature vector. 
 
-Next step: Pass rgb crops of bounding boxes after running mask-RCNN to OFA and get the caption of each rgb crop.
+Next step: Pass masks and captions to the diffusion model and generate the picture we want.
