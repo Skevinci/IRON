@@ -14,7 +14,9 @@ import json
 import cv2
 import random
 import shutil
+import base64
 from PIL import Image
+from io import BytesIO
 from torchvision import transforms
 sys.path.append(os.path.join(os.path.dirname(__file__), "./", "OFA"))
 from transformers.models.ofa.generate import sequence_generator
@@ -43,7 +45,10 @@ class IRON():
     def initDir(self):
         if os.path.exists(self.crop_img_path):
             shutil.rmtree(self.crop_img_path)
+        if os.path.exists(self.gen_img_path):
+            shutil.rmtree(self.gen_img_path)
         os.mkdir(self.crop_img_path)
+        os.mkdir(self.gen_img_path)
 
     def mask_rcnn(self):
         """Mask R-CNN"""
@@ -129,7 +134,22 @@ class IRON():
             with torch.no_grad():
                 self.img_feature.append(model.encode_image(img).cpu().numpy())
         # print(self.img_feature[0].shape)
+        
+    def img2representation(self):
+        # get bbox using mask rcnn
+        self.mask_rcnn()
+        
+        # pass rgb crop of each bbox to ofa and get caption
+        self.crop()
+        self.ofa()
+        
+        # pass rgb crop of each bbox to clip and get feature
+        self.clip()
     
+    def save_b64(self, b64_str, count):
+        img = Image.open(BytesIO(base64.b64decode(b64_str)))
+        img.save(self.gen_img_path + str(count) + ".png")
+        
     def dalle(self):
         response = self.client.images.generate(
             model="dall-e-2",
@@ -140,25 +160,14 @@ class IRON():
             response_format="b64_json",
         )
         
-        image_url = response.data[0].url
-        print(image_url)
+        # print(response)
+        b64_str = response.data[0].b64_json
+        self.save_b64(b64_str, 0)
+        print("==========Generated Images Saved==========")
         
-    def execute(self):
-        self.initDir()
-        
-        # get bbox using mask rcnn
-        self.mask_rcnn()
-        
-        # pass rgb crop of each bbox to ofa and get caption
-        self.crop()
-        self.ofa()
-        
-        # pass rgb crop of each bbox to clip and get feature
-        self.clip()
 
 
 if __name__ == '__main__':
     pipeline = IRON()
-    # pipeline.mask_rcnn()
+    pipeline.initDir()
     pipeline.dalle()
-    # pipeline.execute()

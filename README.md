@@ -1,4 +1,4 @@
-# Image geneRation for Open-world object RearraNgement (IRON)
+# Image geneRation for Open-world object rearraNgement (IRON)
 
 Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its pipeline as described...
 
@@ -13,6 +13,10 @@ Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its 
   - [x] integrate [DALL-E 2] api
   - [ ] text prompt design by passing text descriptions of objects to [Part-of-Speech tagging model] from the [Flair NLP] library (Optional)
   - [ ] image generation editing using masks
+- [ ] Goal image selection
+  - [ ] Convert every generated image into representations that are the same as the first part
+  - [ ] Filter generated images by comparing the number of objects and whether movable objects overlap
+  - [ ] Use [Hungarian Matching algorithm] to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
 
 ## Mask-RCNN (Detectron 2)
 
@@ -51,3 +55,4 @@ Next step: Pass masks and captions to the diffusion model and generate the pictu
 [CLIP]: https://openai.com/research/clip
 [Part-of-Speech tagging model]: https://aclanthology.org/C18-1139.pdf
 [Flair NLP]: https://aclanthology.org/N19-4010/
+[Hungarian Matching algorithm]: https://onlinelibrary.wiley.com/doi/abs/10.1002/nav.3800020109
