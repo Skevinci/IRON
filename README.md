@@ -18,6 +18,13 @@ Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its 
   - [ ] Filter generated images by comparing the number of objects and whether movable objects overlap
   - [ ] Use [Hungarian Matching algorithm] to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
 
+## Current Work Flow
+
+Next step: 
+1. Pass generated prompt to DALL-E 2 to generate images and do the image editing.
+2. Filter generated images.
+3. Implement Hungarian Matching Algorithm.
+
 ## Mask-RCNN (Detectron 2)
 
 Using COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml from detectron 2.
@@ -61,11 +68,6 @@ Reference:
 ## Hanlp
 Follow https://github.com/hankcs/HanLP and use hanlp's RESTful API to do tokenize and Part of Speech in order to generate prompt.
 
-## Current Work Flow
-
-Successfully implement Mask R-CNN, OFA and CLIP and get each object's mask, caption and feature vector. 
-
-Next step: Pass masks and captions to the diffusion model and generate the picture we want. Save generated images as png file.
 
 [DALL-E-Bot]: https://arxiv.org/abs/2210.02438
 [DALL-E 2]: https://openai.com/dall-e-2
