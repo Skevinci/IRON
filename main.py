@@ -15,6 +15,7 @@ import cv2
 import random
 import shutil
 import base64
+import hanlp
 from PIL import Image
 from io import BytesIO
 from torchvision import transforms
@@ -22,8 +23,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "./", "OFA"))
 from transformers.models.ofa.generate import sequence_generator
 from transformers import OFATokenizer, OFAModel
 from openai import OpenAI
-setup_logger()
+from hanlp_restful import HanLPClient
 
+setup_logger()
 
 class IRON():
     def __init__(self):
@@ -41,6 +43,7 @@ class IRON():
         self.original_img = Image.open(self.img_path)
         self.caption = []
         self.img_feature = []
+        self.prompt = []
         
     def initDir(self):
         if os.path.exists(self.crop_img_path):
@@ -135,7 +138,8 @@ class IRON():
                 self.img_feature.append(model.encode_image(img).cpu().numpy())
         # print(self.img_feature[0].shape)
         
-    def img2representation(self):
+    def img2representation(self, is_prompt=False):
+        """Convert image to representation"""
         # get bbox using mask rcnn
         self.mask_rcnn()
         
@@ -143,8 +147,27 @@ class IRON():
         self.crop()
         self.ofa()
         
+        # pass caption to tagging model and get nouns if it is for prompt
+        # if is_prompt:
+        #     self.flair()
+        
         # pass rgb crop of each bbox to clip and get feature
         self.clip()
+        
+    def gen_prompt(self):
+        HanLP = HanLPClient('https://www.hanlp.com/api', auth='NDQwMEBiYnMuaGFua2NzLmNvbTpsTmt2bmFnYU11RGVjcFdW', language='mul')
+        results = HanLP(self.caption, tasks='ud')
+        tokenized = results['tok']
+        pos = results['pos']
+        
+        # get nouns
+        for i in range(len(pos)):
+            for j in range(len(pos[i])):
+                if pos[i][j] == 'NOUN':
+                    self.prompt.append('a ' + tokenized[i][j])
+        
+        self.prompt.append('top-down view')
+        print(self.prompt)
     
     def save_b64(self, b64_str, count):
         img = Image.open(BytesIO(base64.b64decode(b64_str)))
@@ -165,9 +188,16 @@ class IRON():
         self.save_b64(b64_str, 0)
         print("==========Generated Images Saved==========")
         
+    def execute(self):
+        """Execute"""
+        # First, process initial image
+        self.img2representation(is_prompt=True)
+        
 
 
 if __name__ == '__main__':
     pipeline = IRON()
     pipeline.initDir()
-    pipeline.dalle()
+    # pipeline.execute()
+    # pipeline.dalle()
+    pipeline.gen_prompt()
