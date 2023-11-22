@@ -14,7 +14,7 @@ Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its 
   - [x] text prompt design by passing text descriptions of objects to [Part-of-Speech tagging model] from the ~~[Flair NLP]~~ [Hanlp] library (Optional)
   - [ ] image generation editing using masks
 - [ ] Goal image selection
-  - [ ] Convert every generated image into representations that are the same as the first part
+  - [x] Convert every generated image into representations that are the same as the first part
   - [ ] Filter generated images by comparing the number of objects and whether movable objects overlap
   - [ ] Use [Hungarian Matching algorithm] to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
 
