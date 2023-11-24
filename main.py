@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.optimize import linear_sum_assignment
+
 from detectron2 import model_zoo
 from detectron2.utils.logger import setup_logger
 from detectron2.engine import DefaultPredictor
@@ -314,6 +316,36 @@ class IRON:
         self.img2representation(is_initial=True)
         print("==========Finished Converting Initial Image==========")
         # self.dalle()
+
+    def best_match(self):
+        def match_algorithm(cost_matrix):
+            row_idx, col_idx = linear_sum_assignment(cost_matrix, maximize=True)
+            return row_idx, col_idx, cost_matrix[row_idx, col_idx].sum()
+
+        def similarity(v1, v2):
+            return np.sum(v1 * v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+        best_img_idx = -1
+        best_cos_sim = 0
+        best_match_idx = []  # row_idx, col_idx
+
+        for idx, m in self.gen_img_feature.items():
+            if len(m) != len(self.img_feature):
+                pass
+            num = len(m)
+            weight_matrix = np.zeros((num, num))
+            for i in range(num):
+                for j in range(num):
+                    weight_matrix[i, j] = similarity(self.img_feature[i], m[j])  # origin is row, candidate is col
+            print(weight_matrix)
+            row_ind, col_ind, max_sim_sum = match_algorithm(weight_matrix)
+            print(max_sim_sum)
+            if max_sim_sum > best_cos_sim:
+                best_img_idx = idx
+                best_cos_sim = max_sim_sum
+                best_match_idx = [row_ind, col_ind]
+
+        print(best_img_idx, best_cos_sim, best_match_idx)
 
 
 if __name__ == '__main__':
