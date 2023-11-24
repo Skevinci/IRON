@@ -31,7 +31,7 @@ setup_logger()
 
 class IRON():
     def __init__(self):
-        self.img_path = "/home/skevinci/research/iron/img/test.png"
+        self.img_path = "/home/skevinci/research/iron/img/test.jpg"
         self.crop_img_path = "/home/skevinci/research/iron/img/crop/"
         self.gen_img_path = "/home/skevinci/research/iron/img/generated/"
         self.gen_crop_img_path = "/home/skevinci/research/iron/img/generated/crop/"
