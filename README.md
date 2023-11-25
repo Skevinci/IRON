@@ -7,6 +7,7 @@ Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its 
 ## Objectives
 - [x] Convert initial RGB observation into 
   - [x] bbox, masks and class labels using [Mask-RCNN] from the [Detectron 2] library
+  - [x] Filter bbox that overlaps
   - [x] text descriptions by passing bbox crops to [OFA]
   - [x] semantic feature vectors by pass bbox crops to [CLIP]
 - [ ] Goal image generation
@@ -16,7 +17,7 @@ Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its 
 - [ ] Goal image selection
   - [x] Convert every generated image into representations that are the same as the first part
   - [ ] Filter generated images by comparing the number of objects and whether movable objects overlap
-  - [ ] Use [Hungarian Matching algorithm] to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
+  - [ ] Use ~~[Hungarian Matching algorithm]~~ `scipy.optimize.linear_sum_assignment` to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
 
 ## Current Work Flow
 
