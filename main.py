@@ -28,19 +28,22 @@ from transformers import OFATokenizer, OFAModel
 from openai import OpenAI
 from hanlp_restful import HanLPClient
 from collections import Counter
+import pickle
+
+from draw import *
 
 setup_logger()
 
 
 class IRON:
     def __init__(self):
-        self.img_path = "img/test3.jpg"
+        self.img_path = "img/test1.jpg"
         self.crop_img_path = "img/crop/"
         self.gen_img_path = "img/generated/"
         self.gen_crop_img_path = "img/generated/crop/"
         self.ofa_ckpt_path = "OFA-large-caption/"
         self.save_path = None
-        self.client = OpenAI(api_key="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")
+        self.client = OpenAI(api_key="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")
         self.predictor = None  # Mask R-CNN
         self.tokenizer = None  # OFA
         self.inputs = None  # OFA
@@ -59,11 +62,13 @@ class IRON:
         self.img_feature = []
         
         self.prompt = ""
-        self.num_generated = 2  # number of images to generate
+        self.num_generated = 4  # number of images to generate
         self.gen_bbox = []
         self.gen_mask = []
         self.gen_caption = {}
         self.gen_img_feature = {}
+
+        self.debug = True  # test without calling Dall-E
         
     def initDir(self):
         if os.path.exists(self.crop_img_path):
@@ -76,14 +81,19 @@ class IRON:
         os.mkdir(self.gen_img_path)
         os.mkdir(self.gen_crop_img_path)
 
+        if self.debug:
+            print("###### Test Mode ######")
+            shutil.copy("img/fake3.png", "img/generated/0.jpg")
+            shutil.copy("img/fake4.png", "img/generated/1.jpg")
+
     def cfg_init(self):
         """Config"""
         cfg = get_cfg()
         cfg.merge_from_file(model_zoo.get_config_file(
-            "COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml"))
+            "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"))  # mask_rcnn_X_101_32x8d_FPN_3x.yaml
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
         cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
-            "COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")
+            "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
         self.predictor = DefaultPredictor(cfg)
     
     def mask_rcnn(self, is_initial=False, count=0):
@@ -92,14 +102,15 @@ class IRON:
             self.cfg_init()
             im = cv2.imread(self.img_path)
         else:
-            im = cv2.imread(self.gen_img_path + f"{count}.png")
+            im = cv2.imread(self.gen_img_path + f"{count}.jpg")
 
         outputs = self.predictor(im)
         print("Original output:", outputs["instances"].pred_boxes.tensor.to("cpu").numpy())
 
         # Filter crop boxes that are largely overlapping with selected ones
         img_box = np.array([0, 0, im.shape[0], im.shape[1]])
-        overlap_threshold = min(im.shape[0], im.shape[1]) * 0.05  # By experiment
+        overlap_threshold = min(im.shape[0], im.shape[1]) * 0.07  # By experiment
+        # print("threshold", overlap_threshold)
         bbox_candidates = outputs["instances"].pred_boxes.tensor.to("cpu").numpy()
         candidate_idx = []
         for i in range(bbox_candidates.shape[0]):
@@ -120,11 +131,15 @@ class IRON:
         if is_initial:
             self.bbox = bbox_candidates[candidate_idx]
             self.mask = outputs["instances"].pred_masks.to("cpu").numpy()[candidate_idx]
+            draw_box(im, self.bbox, range(4), "img/out_test.jpg")
+            print("Predicted Boxes: ", self.bbox)
         else:
             self.gen_bbox.append(bbox_candidates[candidate_idx])
             self.gen_mask.append(outputs["instances"].pred_masks.to("cpu").numpy()[candidate_idx])
+            print("Predicted Boxes: ", self.gen_bbox[-1])
 
-        print("Predicted Boxes: ", self.bbox)
+        # print(self.bbox[0][0])
+        # print("Mask: ", self.mask)
         print("==========Mask R-CNN Finished==========")
         # print(self.mask.shape)
         # v = Visualizer(im[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
@@ -137,12 +152,20 @@ class IRON:
         """Crop image using bbox"""
         if is_initial:
             for i in range(len(self.bbox)):
+                expanded_mask = np.expand_dims(self.mask[i, :, :], axis=-1)
+                masked_img = self.original_img * expanded_mask
+                masked_img = Image.fromarray(masked_img)
+                masked_img.crop(self.bbox[i]).save(self.crop_img_path + str(i) + "m.png")
                 self.original_img.crop(self.bbox[i]).save(self.crop_img_path + str(i) + ".png")
         else:
+            os.mkdir(self.gen_crop_img_path + "/" + str(count) + "/")
+            self.save_path = self.gen_crop_img_path + "/" + str(count) + "/"
             for i in range(len(self.gen_bbox[count])):
-                crop_img = Image.open(self.gen_img_path + str(count) + ".png")
-                os.mkdir(self.gen_crop_img_path + "/" + str(count) + "/")
-                self.save_path = self.gen_crop_img_path + "/" + str(count) + "/"
+                crop_img = Image.open(self.gen_img_path + str(count) + ".jpg")
+                expanded_mask = np.expand_dims(self.gen_mask[count][i, :, :], axis=-1)
+                masked_img = crop_img * expanded_mask
+                masked_img = Image.fromarray(masked_img)
+                masked_img.crop(self.gen_bbox[count][i]).save(self.save_path + str(i) + "m.png")
                 crop_img.crop(self.gen_bbox[count][i]).save(self.save_path + str(i) + ".png")
 
     def patch_resize_transform(self, image):
@@ -197,16 +220,16 @@ class IRON:
                 self.caption.append(self.tokenizer.batch_decode(gen, skip_special_tokens=True)[0])
             
             print(self.caption)
-            
-        else:
-            for i in range(len(self.gen_bbox[count])):
-                img = Image.open(self.save_path + str(i) + ".png")
-                patch_img = self.patch_resize_transform(img)
-
-                gen = self.gen_caption_fn(patch_img, i)
-
-                self.gen_caption[count] = []
-                self.gen_caption[count].append(self.tokenizer.batch_decode(gen, skip_special_tokens=True)[0])
+        #
+        # else:
+        #     for i in range(len(self.gen_bbox[count])):
+        #         img = Image.open(self.save_path + str(i) + ".png")
+        #         patch_img = self.patch_resize_transform(img)
+        #
+        #         gen = self.gen_caption_fn(patch_img, i)
+        #
+        #         self.gen_caption[count] = []
+        #         self.gen_caption[count].append(self.tokenizer.batch_decode(gen, skip_special_tokens=True)[0])
             
             # print(self.gen_caption[count])
             
@@ -220,19 +243,19 @@ class IRON:
             self.clip_init()
         
             for i in range(len(self.bbox)):
-                img = Image.open(self.crop_img_path + str(i) + ".png")
+                img = Image.open(self.crop_img_path + str(i) + "m.png")
                 img = self.clip_preprocess(img).unsqueeze(0).to(self.device)
                 
                 with torch.no_grad():
                     self.img_feature.append(self.clip_model.encode_image(img).cpu().numpy())
         
         else:
+            self.gen_img_feature[count] = []
             for i in range(len(self.gen_bbox[count])):
-                img = Image.open(self.save_path + str(i) + ".png")
+                img = Image.open(self.save_path + str(i) + "m.png")
                 img = self.clip_preprocess(img).unsqueeze(0).to(self.device)
                 
                 with torch.no_grad():
-                    self.gen_img_feature[count] = []
                     self.gen_img_feature[count].append(self.clip_model.encode_image(img).cpu().numpy())
         
     def img2representation(self, is_initial=False, count=0):
@@ -242,12 +265,12 @@ class IRON:
         
         # pass rgb crop of each bbox to ofa and get caption
         self.crop(is_initial, count)
-        self.ofa(is_initial, count)
-        
+
         # pass caption to tagging model and get nouns if it is for prompt
         if is_initial:
+            self.ofa(is_initial, count)
             self.gen_prompt()
-        
+        #
         # pass rgb crop of each bbox to clip and get feature
         self.clip(is_initial, count)
         
@@ -256,7 +279,7 @@ class IRON:
             print("==========Initial Image Caption==========", self.caption)
             print("==========Initial Image Feature Num==========", len(self.img_feature))
         else:
-            print(f"==========Generated Image{count} Caption==========", self.gen_caption[count])
+            # print(f"==========Generated Image{count} Caption==========", self.gen_caption[count])
             print(f"==========Generated Image{count} Feature Num==========", len(self.gen_img_feature[count]))
         
     def gen_prompt(self):
@@ -282,31 +305,36 @@ class IRON:
             elif cnt <= len(pos) / 2:
                 prompt_list.append(f"{cnt} {tkn}")
 
-        prompt_list.append("on a wooden table, top-down view")
+        prompt_list.append("on a wooden table, well arranged, no overlapping, top-down view")
         
         self.prompt = ", ".join(prompt_list)
         print(self.prompt)
     
     def save_b64(self, b64_str, count):
         img = Image.open(BytesIO(base64.b64decode(b64_str)))
-        img.save(self.gen_img_path + str(count) + ".png")
+        img.save(self.gen_img_path + str(count) + ".jpg")
         
     def dalle(self):
-        response = self.client.images.generate(
-            model="dall-e-2",
-            prompt="a white siamese cat",
-            size="256x256",
-            quality="standard",
-            n=self.num_generated,
-            response_format="b64_json",
-        )
-        
-        # print(response)
-        for i in range(self.num_generated):
-            print(f"==========Processing Generated Image{i}...==========")
-            b64_str = response.data[i].b64_json
-            self.save_b64(b64_str, i)
-            self.img2representation(is_initial=False, count=i)
+        if self.debug:
+            for i in range(self.num_generated):
+                print(f"==========Processing Generated Image{i}...==========")
+                self.img2representation(is_initial=False, count=i)
+        else:
+            response = self.client.images.generate(
+                model="dall-e-2",
+                prompt=self.prompt,
+                size="256x256",
+                quality="standard",
+                n=self.num_generated,
+                response_format="b64_json",
+            )
+
+            # print(response)
+            for i in range(self.num_generated):
+                print(f"==========Processing Generated Image{i}...==========")
+                b64_str = response.data[i].b64_json
+                self.save_b64(b64_str, i)
+                self.img2representation(is_initial=False, count=i)
 
         print("==========Generated Images Saved==========")
         
@@ -315,7 +343,16 @@ class IRON:
         # First, process initial image
         self.img2representation(is_initial=True)
         print("==========Finished Converting Initial Image==========")
-        # self.dalle()
+        self.dalle()
+        print("==========Finished Dall-E Generation==========")
+        self.best_match()
+        # self.savetemp()
+
+    def savetemp(self):
+        with open("img_feature.pkl", "wb") as f:
+            pickle.dump(self.img_feature, f)
+        with open("gen_feature.pkl", "wb") as f:
+            pickle.dump(self.gen_img_feature, f)
 
     def best_match(self):
         def match_algorithm(cost_matrix):
@@ -332,20 +369,25 @@ class IRON:
         for idx, m in self.gen_img_feature.items():
             if len(m) != len(self.img_feature):
                 pass
-            num = len(m)
-            weight_matrix = np.zeros((num, num))
-            for i in range(num):
-                for j in range(num):
-                    weight_matrix[i, j] = similarity(self.img_feature[i], m[j])  # origin is row, candidate is col
-            print(weight_matrix)
-            row_ind, col_ind, max_sim_sum = match_algorithm(weight_matrix)
-            print(max_sim_sum)
-            if max_sim_sum > best_cos_sim:
-                best_img_idx = idx
-                best_cos_sim = max_sim_sum
-                best_match_idx = [row_ind, col_ind]
+            else:
+                num = len(m)
+                weight_matrix = np.zeros((num, num))
+                for i in range(num):
+                    for j in range(num):
+                        weight_matrix[i, j] = similarity(self.img_feature[i], m[j])  # origin is row, candidate is col
+                print(weight_matrix)
+                row_ind, col_ind, max_sim_sum = match_algorithm(weight_matrix)
+                if max_sim_sum > best_cos_sim:
+                    best_img_idx = idx
+                    best_cos_sim = max_sim_sum
+                    best_match_idx = [row_ind, col_ind]
 
-        print(best_img_idx, best_cos_sim, best_match_idx)
+        if best_img_idx != -1:
+            print(best_img_idx, best_cos_sim, best_match_idx)
+            im = cv2.imread(self.gen_img_path + f"{best_img_idx}.jpg")
+            draw_box(im, self.gen_bbox[best_img_idx], best_match_idx[1], "img/best_match.jpg")
+        else:
+            print("No best match!")
 
 
 if __name__ == '__main__':
