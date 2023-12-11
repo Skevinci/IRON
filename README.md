@@ -66,6 +66,9 @@ Reference:
 ## Hanlp
 Follow https://github.com/hankcs/HanLP and use hanlp's RESTful API to do tokenize and Part of Speech in order to generate prompt.
 
+## Matching Algorithm
+```scipy.optimize.linear_sum_assignment```
+
 
 [DALL-E-Bot]: https://arxiv.org/abs/2210.02438
 [DALL-E 2]: https://openai.com/dall-e-2
