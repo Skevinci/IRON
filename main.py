@@ -43,7 +43,7 @@ class IRON:
         self.gen_crop_img_path = "img/generated/crop/"
         self.ofa_ckpt_path = "OFA-large-caption/"
         self.save_path = None
-        self.client = OpenAI(api_key="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")
+        self.client = OpenAI(api_key="")
         self.predictor = None  # Mask R-CNN
         self.tokenizer = None  # OFA
         self.inputs = None  # OFA
@@ -83,17 +83,19 @@ class IRON:
 
         if self.debug:
             print("###### Test Mode ######")
-            shutil.copy("img/fake3.png", "img/generated/0.jpg")
-            shutil.copy("img/fake4.png", "img/generated/1.jpg")
+            shutil.copy("img/generated_test/0.jpg", "img/generated/0.jpg")
+            shutil.copy("img/generated_test/1.jpg", "img/generated/1.jpg")
+            shutil.copy("img/generated_test/2.jpg", "img/generated/2.jpg")
+            shutil.copy("img/generated_test/3.jpg", "img/generated/3.jpg")
 
     def cfg_init(self):
         """Config"""
         cfg = get_cfg()
         cfg.merge_from_file(model_zoo.get_config_file(
-            "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"))  # mask_rcnn_X_101_32x8d_FPN_3x.yaml
+            "COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x.yaml"))
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
         cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
-            "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
+            "COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x.yaml")
         self.predictor = DefaultPredictor(cfg)
     
     def mask_rcnn(self, is_initial=False, count=0):
@@ -110,7 +112,6 @@ class IRON:
         # Filter crop boxes that are largely overlapping with selected ones
         img_box = np.array([0, 0, im.shape[0], im.shape[1]])
         overlap_threshold = min(im.shape[0], im.shape[1]) * 0.07  # By experiment
-        # print("threshold", overlap_threshold)
         bbox_candidates = outputs["instances"].pred_boxes.tensor.to("cpu").numpy()
         candidate_idx = []
         for i in range(bbox_candidates.shape[0]):
@@ -136,10 +137,9 @@ class IRON:
         else:
             self.gen_bbox.append(bbox_candidates[candidate_idx])
             self.gen_mask.append(outputs["instances"].pred_masks.to("cpu").numpy()[candidate_idx])
+            # draw_box(im, self.gen_bbox[-1], range(len(self.gen_bbox[-1])), f"img/out_test{count}.jpg")
             print("Predicted Boxes: ", self.gen_bbox[-1])
 
-        # print(self.bbox[0][0])
-        # print("Mask: ", self.mask)
         print("==========Mask R-CNN Finished==========")
         # print(self.mask.shape)
         # v = Visualizer(im[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
@@ -265,7 +265,7 @@ class IRON:
         
         # pass rgb crop of each bbox to ofa and get caption
         self.crop(is_initial, count)
-
+        #
         # pass caption to tagging model and get nouns if it is for prompt
         if is_initial:
             self.ofa(is_initial, count)
@@ -394,4 +394,3 @@ if __name__ == '__main__':
     pipeline = IRON()
     pipeline.initDir()
     pipeline.execute()
-    # pipeline.dalle()
