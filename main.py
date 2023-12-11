@@ -92,10 +92,10 @@ class IRON:
         """Config"""
         cfg = get_cfg()
         cfg.merge_from_file(model_zoo.get_config_file(
-            "COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x.yaml"))
+            "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"))
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
         cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
-            "COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x.yaml")
+            "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
         self.predictor = DefaultPredictor(cfg)
     
     def mask_rcnn(self, is_initial=False, count=0):
