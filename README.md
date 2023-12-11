@@ -2,7 +2,7 @@
 
 Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its pipeline as described...
 
-⛏️Coming soon!
+⛏️It's now finished!
 
 ## Objectives
 - [x] Convert initial RGB observation into 
