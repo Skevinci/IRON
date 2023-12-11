@@ -330,7 +330,7 @@ class IRON():
         # First, process initial image
         self.img2representation(is_initial=True)
         print("==========Finished Converting Initial Image==========")
-        self.dalle()
+        # self.dalle()
         
 
 

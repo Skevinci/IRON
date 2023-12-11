@@ -10,21 +10,18 @@ Our idea comes from [DALL-E-Bot]🤖 and we are trying to reproduce part of its 
   - [x] Filter bbox that overlaps
   - [x] text descriptions by passing bbox crops to [OFA]
   - [x] semantic feature vectors by pass bbox crops to [CLIP]
-- [ ] Goal image generation
+- [x] Goal image generation
   - [x] integrate [DALL-E 2] api
   - [x] text prompt design by passing text descriptions of objects to [Part-of-Speech tagging model] from the ~~[Flair NLP]~~ [Hanlp] library (Optional)
-  - [ ] image generation editing using masks
-- [ ] Goal image selection
+  ~~- [ ] image generation editing using masks~~
+- [x] Goal image selection
   - [x] Convert every generated image into representations that are the same as the first part
-  - [ ] Filter generated images by comparing the number of objects and whether movable objects overlap
-  - [ ] Use ~~[Hungarian Matching algorithm]~~ `scipy.optimize.linear_sum_assignment` to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
+  - [x] Filter generated images by comparing the number of objects and whether movable objects overlap
+  - [x] Use ~~[Hungarian Matching algorithm]~~ `scipy.optimize.linear_sum_assignment` to compute an assignment of each object in the initial image to an object in the generated image, such that the total cosine similarity score is maximized.
 
 ## Current Work Flow
 
-Next step: 
-1. Pass generated prompt to DALL-E 2 to generate images and do the image editing.
-2. Filter generated images.
-3. Implement Hungarian Matching Algorithm.
+Finished.
 
 ## Mask-RCNN (Detectron 2)
 
